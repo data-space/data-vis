@@ -5,11 +5,12 @@ date: "3/31/2017"
 output: word_document
 ---
 
-Libraries used
+Libraries used: ggplot2, dplyr, ggrepel, ggmap
 ```{r setup, include = FALSE}
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
+library(ggmap)
 ```
 
 ## Labels
@@ -67,8 +68,50 @@ diamonds %>%
   theme_light()
 ```
 
+## Choropleth map
+
+Choropleth maps are helpful for visualizing geographic data.
+
+```{r}
+dfworldmap = map_data("world")
+dfworldmap %>%
+  ggplot()+
+  geom_polygon(aes(long,lat, group=group), fill="grey65") + 
+  theme_bw() + 
+  ggtitle("The world map!")
+```
+
+We demonstrate a country's data with its map. This example will show the number of Murder arrests in each state of the US using USArrests dataset and then put the statistics into the US map.  
+
+Step 1: transform data  
+```{r}
+arrest <- cbind(region = rownames(USArrests), USArrests)
+arrest$region=tolower(arrest$region)
+arrest = transform(arrest, murder = cut_number(Murder, 5))
+```
+
+Step 2: create the map  
+map_data() turns data from the maps package in to a data frame suitable for plotting with ggplot2.  
+coord_map() projects a portion of the earth, which is approximately spherical, onto a flat 2D plane.  
+scale_fill_grey() changes the colors from the default unordered multiple colors to an ordered and print-friendly black and white (see also scale_fill_brewer).
+
+```{r}
+us_map = map_data("state")
+map_data = merge(arrest, us_map, by="region")
+map_data = map_data[order(map_data$order),]
+map_data %>%
+  ggplot(aes(x=long, y=lat, group=group)) +
+  geom_polygon(aes(fill = murder)) +
+  scale_fill_grey(start=1, end =.3) + 
+  geom_path(colour='black') +
+  coord_map()
+```
+
 ## Sources
 https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html
 http://docs.ggplot2.org/0.9.3.1/facet_wrap.html
+http://web.stanford.edu/~imalone/VAM/ggmap.html
+https://nhorton.people.amherst.edu/sasr2/choropleth.pdf
+
 
 
