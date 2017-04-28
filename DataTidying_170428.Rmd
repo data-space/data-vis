@@ -1,0 +1,120 @@
+---
+title: "Data Tidying"
+author: "Hanh Nguyen"
+date: "4/28/2017"
+output: html_document
+---
+
+We often wish to tidy and reshape a dataset so that we can create certain plots. Here I introduce the two packages **tidyr** and **reshape2** to help the need and also to see how functions in **tidyr** and **reshape2** overlap and differ.  
+We first compare the functions gather(), separate() and spread(), from tidyr, with the functions melt(), colsplit() and dcast(), from reshape2.  
+
+```{r setup, include = FALSE}
+library(tidyr)
+library(reshape2)
+library(ggplot2)
+```
+
+The original dataset
+
+```{r, echo = FALSE}
+head(iris)
+```
+
+## tidyr package  
+
+**gather {tidyr}**: takes multiple columns and collapses into key-value pairs, duplicating all other columns as needed. You use gather() when you notice that you have columns that are not variables.  
+Simply put, gather() takes wide-format data and turns it into long-format data
+
+```{r}
+iris.tidyr <- iris %>%
+  gather(key,value,-Species)
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+Our next step is to split the column key into two different columns: Part of a flower (Sepal or Petal) and Measure of that part (Length or Width), hence we use separate() function.  
+**separate {tidyr}**: turns a single character column into multiple columns.
+
+```{r}
+iris.tidyr <- iris %>%
+  gather(key,value,-Species) %>%
+  separate(key,into=c("Part","Measure"),sep="\\.")
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+With this dataset structure, we now can create a plot as shown below.
+
+```{r}
+iris.tidyr %>%
+  ggplot(aes(x = Species, y = value, col = Part)) +
+  geom_point(alpha =0.5) +
+  facet_grid(. ~ Measure)
+```
+
+**spread {tidyr}**: spreads a key-value pair across multiple columns.
+In contrast to gather(), spread() takes long-format data and turns it into wide-format data.
+
+```{r}
+iris$Flower <- 1:nrow(iris)
+iris.tidyr <- iris %>%
+  gather(key, value, - Species, - Flower) %>%
+  separate(key, c("Part", "Measure"), "\\.") %>%
+  spread(Measure, value)
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+With this dataset structure, we now can create a plot as shown below.
+
+```{r}
+iris.tidyr %>%
+  ggplot(aes(x=Length,y=Width,col=Part)) +
+  geom_point(alpha=0.5)
+```
+
+## reshape2 package 
+
+**melt {reshape2}**: converts an object into a molten data frame, giving same result with the gather() function from tidyr.  
+However, gather() cannot handle matrices or arrays, while melt() can!  
+```{r}
+iris.re <- iris %>%
+  melt(id.vars="Species")
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+**colsplit {reshape2}**: splits variable names that is a combination of multiple variables.  
+Again, we can achieve the same result with separate() function from tidyr, however, colsplit() operates only on a single column so we use cbind() to insert the new two columns in the data frame. While separate() performs all the operation at once.
+
+```{r}
+iris$Flower <- 1:nrow(iris)
+iris.re <- iris %>%
+  melt(id.vars=c("Species","Flower"))
+iris.re = cbind(Species=iris.re[,1],
+                Flower=iris.re[,2],
+                colsplit(iris.re[,3],"\\.",c("Part","Measure")),
+                value=iris.re[,4])
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+Again, the same result produced by spread() from tidyr can be obtained using dcast() from reshape2 by specifying the correct formula.  
+**cast {reshape2}**: casts a molten data frame into an array or data frame.  
+
+```{r}
+iris.re = dcast(iris.re, formula=Flower+Species+Part ~Measure)
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+
+Sources:  
+https://blog.rstudio.org/2014/07/22/introducing-tidyr/  
+http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
