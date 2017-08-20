@@ -1,0 +1,178 @@
+---
+title: "Introduce Cleansing Techniques"
+author: "Hanh Nguyen"
+output: pdf_document
+---
+
+We often wish to tidy and reshape a dataset so that we can create certain plots. Here I introduce the two packages **tidyr** and **reshape2** to help the need and also to see how functions in **tidyr** and **reshape2** overlap and differ.  
+We first compare the functions gather(), separate() and spread(), from tidyr, with the functions melt(), colsplit() and dcast(), from reshape2.  
+
+```{r setup, include = FALSE}
+library(tidyr)
+library(reshape2)
+library(ggplot2)
+```
+
+The original dataset
+
+```{r, echo = FALSE}
+head(iris)
+```
+
+## tidyr package  
+
+**gather {tidyr}**: takes multiple columns and collapses into key-value pairs, duplicating all other columns as needed. You use gather() when you notice that you have columns that are not variables.  
+Simply put, gather() takes wide-format data and turns it into long-format data
+
+```{r}
+iris.tidyr <- iris %>%
+  gather(key,value,-Species)
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+Our next step is to split the column key into two different columns: Part of a flower (Sepal or Petal) and Measure of that part (Length or Width), hence we use separate() function.  
+**separate {tidyr}**: turns a single character column into multiple columns.
+
+```{r}
+iris.tidyr <- iris %>%
+  gather(key,value,-Species) %>%
+  separate(key,into=c("Part","Measure"),sep="\\.")
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+With this dataset structure, we now can create a plot as shown below.
+
+```{r}
+iris.tidyr %>%
+  ggplot(aes(x = Species, y = value, col = Part)) +
+  geom_point(alpha =0.5) +
+  facet_grid(. ~ Measure)
+```
+
+**spread {tidyr}**: spreads a key-value pair across multiple columns.
+In contrast to gather(), spread() takes long-format data and turns it into wide-format data.
+
+```{r}
+iris$Flower <- 1:nrow(iris)
+iris.tidyr <- iris %>%
+  gather(key, value, - Species, - Flower) %>%
+  separate(key, c("Part", "Measure"), "\\.") %>%
+  spread(Measure, value)
+```
+```{r, echo = FALSE}
+head(iris.tidyr)
+```
+
+With this dataset structure, we now can create a plot as shown below.
+
+```{r}
+iris.tidyr %>%
+  ggplot(aes(x=Length,y=Width,col=Part)) +
+  geom_point(alpha=0.5)
+```
+
+## reshape2 package 
+
+**melt {reshape2}**: converts an object into a molten data frame, giving same result with the gather() function from tidyr.  
+However, gather() cannot handle matrices or arrays, while melt() can!  
+```{r}
+iris.re <- iris %>%
+  melt(id.vars="Species")
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+**colsplit {reshape2}**: splits variable names that is a combination of multiple variables.  
+Again, we can achieve the same result with separate() function from tidyr, however, colsplit() operates only on a single column so we use cbind() to insert the new two columns in the data frame. While separate() performs all the operation at once.
+
+```{r}
+iris$Flower <- 1:nrow(iris)
+iris.re <- iris %>%
+  melt(id.vars=c("Species","Flower"))
+iris.re = cbind(Species=iris.re[,1],
+                Flower=iris.re[,2],
+                colsplit(iris.re[,3],"\\.",c("Part","Measure")),
+                value=iris.re[,4])
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+Again, the same result produced by spread() from tidyr can be obtained using dcast() from reshape2 by specifying the correct formula.  
+**cast {reshape2}**: casts a molten data frame into an array or data frame.  
+
+```{r}
+iris.re = dcast(iris.re, formula=Flower+Species+Part ~Measure)
+```
+```{r, echo = FALSE}
+head(iris.re)
+```
+
+### Example  
+
+Next, we explore an MBTA ridership dataset. The Massachusetts Bay Transportation Authority ("MBTA" or just "the T" for short) manages America's oldest subway, as well as Greater Boston's commuter rail, ferry, and bus systems.  
+The dataset is stored as an Excel spreadsheet called mbta.xlsx. The first row is a title, so it needs to be skipped.
+
+```{r}
+library(readxl)
+library(dplyr)
+setwd("/Users/user/GitHub/data-vis")
+mbta = read_excel("mbta.xlsx",skip=1)
+```
+
+First of all, we start with basic commands to explore the dataset.  
+```{r}
+head(mbta)
+str(mbta)
+summary(mbta)
+```
+
+There're some unnecessary rows and columns. All of the NA values are stored in the All Modes by Qtr row. This row is a quarterly average of weekday MBTA ridership and since this dataset tracks monthly average ridership, it can be removed. Similarly, the 7th row (Pct Chg / Yr) and the 11th row (TOTAL) are not really observations and will be removed. The first column also needs to be removed because it's just listing the row numbers.  
+
+```{r}
+mbta = mbta[-c(1, 7, 11), ]
+mbta = mbta[, -1]
+```
+
+The different modes of transportation (commuter rail, bus, subway, ferry, etc.) are variables, providing information about each month's average ridership. The months themselves are observations. The variables are stored in rows instead of columns and since we actually want to represent variables in columns rather than rows, we use the **gather()** and **separate()** functions from the tidyr package. 
+
+Also, we change the average weekday ridership column, thou_riders, into numeric values rather than character strings.  
+
+```{r}
+mbta2 = mbta %>%
+  gather(month, thou_riders, -mode)
+mbta2$thou_riders = as.numeric(mbta2$thou_riders)
+mbta2 = mbta2 %>%  
+  spread(mode,thou_riders) %>%
+  separate(month, into=c("year","month"),sep="-")
+```
+
+By running *summary(mbta2), hist(mbta2$Boat)*, we see that every value of the Boat column clustered around 4 and one loner out around 40.   
+
+```{r}
+summary(mbta2)
+hist(mbta2$Boat)
+```
+
+Every month, average weekday commuter boat ridership was on either side of four thousand. Then, one month it jumped to 40 thousand without warning? This value is likely an error as being accidentally typed 40 instead of 4. Therefore, we'll locate the incorrect value and change it to 4.  
+
+```{r}
+i = which(mbta2$Boat > 30)
+mbta2$Boat[i] = 4
+```
+
+A quick look at the new dataset
+```{r}
+summary(mbta2)
+head(mbta2)
+```
+
+Sources:  
+https://blog.rstudio.org/2014/07/22/introducing-tidyr/  
+http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/  
+https://www.datacamp.com/courses/importing-cleaning-data-in-r-case-studies  
