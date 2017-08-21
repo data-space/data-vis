@@ -1,7 +1,7 @@
 # Data modeling and visualization in R  
 
 **Introduce_Cleansing_Techniques:**   
-This tutorial compares two main packages *tidyr, reshape2* which have equivalent fuctions for data cleansing, tidying and aggregation - these are usually important and prerequisite steps for data exploration, visualization and modeling. 
+This tutorial compares two main packages *tidyr, reshape2* which have equivalent fuctions for data cleansing, tidying and aggregation - these are important and most of the time prerequisite steps for data exploration, visualization and modeling. 
 
 **Introduce_Visualization_Techniques:**   
 supplement the visualization tutorial in Data Science class at Bentley University. This tutorial focuses on *ggplot2* while also incorporatates other visualization packages *ggrepel, ggmap*  
