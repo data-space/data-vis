@@ -1,5 +1,3 @@
-# data-vis
-  
 # Data modeling and visualization in R  
 
 **Introduce_Cleansing_Techniques:**   
@@ -8,7 +6,7 @@ This tutorial compares two main packages *tidyr, reshape2* which have equivalent
 **Introduce_Visualization_Techniques:**   
 supplement the visualization tutorial in Data Science class at Bentley University. This tutorial focuses on *ggplot2* while also incorporatates other visualization packages *ggrepel, ggmap*  
 
-**Explore_Economist_dataset:** 
+**Explore_Economist_dataset:**   
 The dataset (Economist.csv) consists of countries scored on how corrupt their public sectors are seen to be (Corruption Perceptions Index - CPI) and on achievement in key dimensions of human development: a long and healthy life, being knowledgeable and have a decent standard of living (Human Development Index - HDI). Using *ggplot2 and ggrepel*, this tutorial provides scatterplots on country and regional levels and also a better geographical view by putting data on the world map. Later, clustering is applied to group countries into smaller subsets.
 
 **Explore_United_Nation_Voting_dataset:**   
